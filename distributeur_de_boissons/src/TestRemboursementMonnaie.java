@@ -1,4 +1,5 @@
 import java.util.Scanner;
+
 /**
  * Classe de test de l'algorithme de remboursement d'un distributeur de boissons
  * Le remboursement privilégie les pièces les plus petites en premier
@@ -18,14 +19,14 @@ public class TestRemboursementMonnaie {
 		
 		//initialisation du tableau de pièces de la machine (ex 200centimes = 2€)
 		int[][] tabPiecesMachine = {
-				{1,2},
-				{2,2},
-				{5,2},
-				{10,4},
-				{20,2},
-				{50,1},
-				{100,1},
-				{200,1},
+				{1,99},
+				{2,100},
+				{5,100},
+				{10,100},
+				{20,100},
+				{50,100},
+				{100,100},
+				{200,100},
 		};
 		
 		//initialisation du tableau de pièces tampon
@@ -77,43 +78,59 @@ public class TestRemboursementMonnaie {
 			System.out.println("Vous n'avez pas assez d'argent !");
 			System.exit(1);
 		}
-		
-		//Parcours du tableau de pièces et ajout en partant de la plus petite
-		for (int i = 0; i < tabPiecesMachine.length; i++) {
-			while (montantCentimeCagnotte < montantCentimeARembourser && tabPiecesMachine[i][1] > 0) {
-				montantCentimeCagnotte += tabPiecesMachine[i][0];
-				tabPiecesBuffer[i][1]++;
-				tabPiecesMachine[i][1]--;
+		calculRemboursementPetitesPieces(tabPiecesMachine, tabPiecesBuffer, memoirePiece, montantCentimeCagnotte, montantCentimeARembourser);
+	}
+	
+	/**
+	 * Calcul le remboursement avec les plus petites pièces en premier
+	 * @param tabPiecesMachine : tableau des pièeces de la machine
+	 * @param tabPiecesCagnotte : tableau des pièces à rembourser au client
+	 * @param niveauDePiece : niveau de pièce dans les tableau (ex : niveau 1 pour 0,02€)
+	 * @param montantCagnotte : montant effectif du remboursement au client
+	 * @param montantARembourser : montant de remboursement prévu pour le client
+	 */
+	private static void calculRemboursementPetitesPieces(int[][] tabPiecesMachine, int[][] tabPiecesCagnotte, int niveauDePiece, int montantCagnotte, int montantARembourser){
+		if(montantCagnotte > montantARembourser){
+			if(tabPiecesCagnotte[niveauDePiece][1] > 0){//reste des pièces dans cette catégorie de pièces
+				if(tabPiecesCagnotte[niveauDePiece][0] <= (montantCagnotte-montantARembourser)){//la valeur de la pièce n'est pas trop grosse
+					tabPiecesCagnotte[niveauDePiece][1]--;
+					tabPiecesMachine[niveauDePiece][1]++;
+					montantCagnotte-=tabPiecesCagnotte[niveauDePiece][0];
+					calculRemboursementPetitesPieces(tabPiecesMachine, tabPiecesCagnotte, niveauDePiece, montantCagnotte, montantARembourser);
+				}else{//valeur de la pièce trop grosse
+					niveauDePiece--;
+					calculRemboursementPetitesPieces(tabPiecesMachine, tabPiecesCagnotte, niveauDePiece, montantCagnotte, montantARembourser);
+				}
+			}else{//plus de pièces dans cette categ
+				niveauDePiece--;
+				calculRemboursementPetitesPieces(tabPiecesMachine, tabPiecesCagnotte, niveauDePiece, montantCagnotte, montantARembourser);
 			}
-			if(montantCentimeCagnotte >= montantCentimeARembourser){
-				memoirePiece=i;
-				break;
-			}
-		}
-		//Parcours du tableau de pièces dans le sens inverse pour enlever le surplus monétaire
-		if(montantCentimeCagnotte == montantCentimeARembourser){
-			afficherPieces(tabPiecesBuffer);
+		}else if(montantCagnotte == montantARembourser){
+			System.out.println("REMBOURSEMENT");
+			System.out.println("montant du remboursement :" + montantCagnotte);
+			afficherPieces(tabPiecesCagnotte);
 			System.exit(0);
 		}else{
-			for (int i = memoirePiece-1; i>-1 ; i--) {
-				while (montantCentimeCagnotte > montantCentimeARembourser && tabPiecesBuffer[i][1] > 0 && (tabPiecesBuffer[i][0] <= (montantCentimeCagnotte-montantCentimeARembourser))) {
-					montantCentimeCagnotte -= tabPiecesBuffer[i][0];
-					tabPiecesBuffer[i][1]--;
-					tabPiecesMachine[i][1]++;
-				}
+			//cagnotte pas pleine
+			if(tabPiecesMachine[niveauDePiece][1] > 0){//si il reste des pièces de la catégorie dans la machine
+				tabPiecesMachine[niveauDePiece][1]--;//on l'enlève de la machine
+				tabPiecesCagnotte[niveauDePiece][1]++;//on rajoute une piece de la categ dans le tab cagnotte
+				montantCagnotte+=tabPiecesMachine[niveauDePiece][0];
+				calculRemboursementPetitesPieces(tabPiecesMachine, tabPiecesCagnotte, niveauDePiece, montantCagnotte, montantARembourser);//RECURSION
+			}else{//plus de pièces d'une categorie
+				niveauDePiece++;
+				calculRemboursementPetitesPieces(tabPiecesMachine, tabPiecesCagnotte, niveauDePiece, montantCagnotte, montantARembourser);//RECURSION
 			}
 		}
-		afficherPieces(tabPiecesBuffer);
-		System.exit(0);
+		
 	}
 
 	/**
-	 * 
+	 * Affiche les pièces d'un tableau
 	 * @param tabPieces : tableau de pièces à afficher
 	 */
 	private static void afficherPieces(int[][] tabPieces) {
 		float valeurPieceEuros;
-		System.out.println("REMBOURSEMENT :");
 		for (int i = 0; i < tabPieces.length; i++) {
 			valeurPieceEuros = (float) tabPieces[i][0]/100;
 			System.out.println(tabPieces[i][1] + " Pièce(s) de "+ valeurPieceEuros + "€");
@@ -132,5 +149,5 @@ public class TestRemboursementMonnaie {
 		}
 		return montant;
 	}
-
+	
 }
